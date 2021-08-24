@@ -25,9 +25,9 @@
           <% } %>
         </div>
       </section>
-      <section class="section">
-        <% digest.kpis.forEach(function(group) { %>
-        <div class="group">
+      <% digest.kpis.forEach(function(group) { %>
+        <section class="section">
+          <div class="group">
           <h2 class="title"><%= group.group.title %></h2>
           <div class="group columns is-multiline">
             <% group.kpis.forEach(function(metric) { %>
@@ -74,8 +74,8 @@
             <% }); %>
           </div>
         </div>
-      <% }); %>
       </section>
+    <% }); %>
     <footer class="footer">
       <div class="content has-text-centered">
         <p>
