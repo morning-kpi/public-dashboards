@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= digest.title %> | By Morning</title>
+    <meta charset="utf-8" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js" integrity="sha512-Wt1bJGtlnMtGP0dqNFH1xlkLBNpEodaiQ8ZN5JLA5wpc1sUlk/O5uuOMNgvzddzkpvZ9GLyYNa8w2s7rqiTk5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <script src="https://kit.fontawesome.com/a5053dcfb3.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js" integrity="sha512-Wt1bJGtlnMtGP0dqNFH1xlkLBNpEodaiQ8ZN5JLA5wpc1sUlk/O5uuOMNgvzddzkpvZ9GLyYNa8w2s7rqiTk5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fira+Code:wght@300&display=swap" rel="stylesheet">
+    <script type="text/javascript">
+      const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,    
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            backgroundColor: '#000',
+            titleFont: {
+              family: 'Roboto',
+              size: 12,
+              weight: 'light'
+            },
+            padding: 12,
+            bodyFont: {
+              family: 'Roboto',
+              size: 16,
+              weight: 'bold',
+            },
+            displayColors: false,
+            callbacks: {
+              label: function (context) {
+                return context.formattedValue;
+              },
+            }
+          }
+        },
+        hoverBorderColor: 'white',
+        hoverBorderWidth: 3,
+        hoverBackgroundColor: '#000',
+        pointBackgroundColor: 'rgba(0,0,0,0)',
+        pointBorderColor: 'rgba(0,0,0,0)',
+        elements: { 
+          point: { hitRadius: 10, hoverRadius: 10, radius: 10 },
+          line: { borderWidth: 3, borderCapStyle: 'round', borderJoinStyle: 'round' }
+        },
+        scales: {
+          x: {
+            grid: {
+              drawBorder: false,
+              display: false
+            },
+          },
+          y: {
+            display: false,
+          },
+        },
+        ticks: {
+          display: false,
+        }
+      }
+    </script>
+    <style>
+      body, input, button {
+        font-family: 'DM Mono', monospace;
+      }
+      .hero.is-info {
+        background-color: black;
+      }
+      .title {
+        font-family: 'DM Mono', monospace;
+        font-weight: 400;
+      }
+      .hero .title {
+        font-weight: 600;
+      }
+      .box {
+        border-radius: 0;
+        border: 1px solid black;
+        box-shadow: 0 0 0 0;
+      }
+      .value {
+        font-family: 'Fira Code', monospace;
+      }
+    </style>
+    <% if (cssURL) { %>
+      <link rel="stylesheet" href="<%= cssURL %>" />
+    <% } %>
+  </head>
+  <body>
+    <div class="container">
+      <section class="hero is-info">
+        <div class="hero-body">
+          <p class="title">
+            <%= digest.title %>
+          </p>
+          <% if(description) { %>
+            <p class="subtitle">
+              <%= description %>
+            </p>
+          <% } %>
+        </div>
+      </section>
+      <% digest.kpis.forEach(function(group) { %>
+        <section class="section">
+          <div class="group">
+          <h2 class="title"><%= group.group.title %></h2>
+          <div class="group columns is-multiline">
+            <% group.kpis.forEach(function(metric) { %>
+              <div class="column is-half">
+                <div class="metric box p-5">
+                  <h3 class="title is-5"><%= metric.icon %>&nbsp;<%= metric.title %></h3>
+                  <h1 class="value subtitle is-1 level">
+                    <div class="level-left">
+                      <% if(metric.format !== 'Currency' && metric.format !== 'Percentage') { %>
+                        <%= metric.data.value.toLocaleString() %>
+                      <% } else if(metric.format === 'Percentage') { %>
+                        <%= metric.data.value.toFixed(1).toLocaleString() %>%
+                      <% } else { %>
+                        <% 
+                          const formatter = new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                          });
+                        %>
+                        <%= formatter.format(metric.data.value).replace('.00','') %>
+                      <% } %>
+                    </div>
+                    <% 
+                      var className = 'has-text-success';
+                      if(metric.data.delta < 0) {
+                        className = 'has-text-danger';
+                      }
+                      if(metric.data.delta === 0) {
+                        className = 'has-text-grey-light';
+                      }
+                    %>
+                    <div class='level-right <%= className %> is-size-5'>
+                      <% if(metric.data.delta > 0) { %>
+                        <i class="fas fa-arrow-up"></i>
+                      <% } %>
+                      <% if(metric.data.delta < 0) { %>
+                        <i class="fas fa-arrow-down"></i>
+                      <% } %>&nbsp;
+                      <%= (metric.data.delta * 100).toFixed(1).toLocaleString() %>%
+                    </div>
+                  </h1>
+                  <div style="width: 100%; height: 140px; position: relative">
+                  <canvas id="metric-<%= metric.id %>"></canvas>
+                  </div>
+                  <script type='text/javascript'>
+                    const chart<%= metric.id %> = () => {
+                      const ctx = document.getElementById(`metric-<%= metric.id %>`);
+                      <%
+                        var labels = [...metric.history.slice(0,7).reverse()
+                            .map(metric => new Date(metric.created))
+                            .map(d => `${d.toLocaleString('default', { month: 'short'})} ${d.getDate()}`), 'Today']
+                            .map(val => `"${val}"`)
+                            .join(',');
+                        var data = [
+                          ...metric.history.slice(0,7).reverse().map(metric => metric.value),
+                          metric.data.value
+                        ].join(',');
+                      %>
+                      var data = {
+                        labels: [<%- labels %>],
+                        datasets: [{
+                          label: "<%= metric.title %>",
+                          data: [<%- data %>],
+                          backgroundColor: '#000',
+                          borderColor: '#000',
+                          fill: false,
+                          cubicInterpolationMode: 'monotone',
+                          tension: 0.4,
+                        }],
+                      };
+
+                      const metricsChart = new Chart(ctx, {
+                        type: 'line',
+                        options: chartOptions,
+                        data,
+                      });
+                    };
+                  
+                    document.addEventListener("DOMContentLoaded", chart<%= metric.id %>);
+                  </script>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      </section>
+    <% }); %>
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>
+          Generated by <a href="https://morning.so">Morning</a> on 
+          <%= new Date().toLocaleDateString() %> at 
+          <%= new Date().toLocaleTimeString() %>
+        </p>
+      </div>
+    </footer>
+    </div>
+  </body>
+</html>
